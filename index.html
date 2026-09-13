@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<title>受験逆算プランナー</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>受験逆算プランナー</h1>
+</header>
+
+<main id="screen-home" class="screen active">
+
+  <section class="card standby-trigger-card">
+    <button type="button" id="btn-open-standby" class="btn-primary">📱 待受モードを開く</button>
+    <small class="hint">縦長のシンプル画面を表示します。スクリーンショットしてロック画面の背景に使えます</small>
+  </section>
+
+  <section class="card">
+    <h2>志望校・受験方式</h2>
+    <form id="settings-form" onsubmit="return false;">
+      <label for="input-school-name">第一志望校</label>
+      <input type="text" id="input-school-name" placeholder="例：〇〇高等学校" autocomplete="off">
+
+      <label for="select-exam-type">受験方式</label>
+      <select id="select-exam-type">
+        <option value="未定">未定</option>
+        <option value="専願">専願</option>
+        <option value="前期">前期</option>
+        <option value="後期">後期</option>
+      </select>
+    </form>
+    <small class="hint">入力内容はこの端末のブラウザにのみ保存されます</small>
+  </section>
+
+  <section class="card">
+    <h2>カウントダウン</h2>
+    <div class="countdown-grid">
+      <div class="countdown-item">
+        <div class="num" id="countdown-exam">--</div>
+        <div class="label">受験候補日まで</div>
+      </div>
+      <div class="countdown-item">
+        <div class="num" id="countdown-mock">--</div>
+        <div class="label">次の模試まで</div>
+      </div>
+      <div class="countdown-item">
+        <div class="num" id="countdown-school-test">--</div>
+        <div class="label">次の学校テストまで</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>今週の重点科目</h2>
+    <div id="weekly-focus-list" class="chip-list"></div>
+    <form id="focus-form">
+      <label for="input-weekly-focus">科目を追加</label>
+      <div class="inline-form">
+        <input type="text" id="input-weekly-focus" placeholder="例：数学">
+        <button type="submit" class="btn-inline">追加</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="card-heading-row">
+      <h2>今週やること</h2>
+      <span class="today-badge" id="weekly-tasks-today-label">今日は--曜日</span>
+    </div>
+    <div id="weekly-tasks-list"></div>
+    <form id="task-form">
+      <label for="input-weekly-task">タスクを追加</label>
+      <div class="inline-form">
+        <input type="text" id="input-weekly-task" placeholder="例：数学の過去問を1年分解く">
+        <button type="submit" class="btn-inline">追加</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <button type="button" id="btn-reset-data" class="link-btn">すべてのデータを初期化する</button>
+  </section>
+
+</main>
+
+<main id="screen-schedule" class="screen">
+
+  <section class="card">
+    <h2>予定を追加</h2>
+    <form id="event-form">
+      <label for="event-type-select">種類</label>
+      <select id="event-type-select">
+        <option value="mock">模試</option>
+        <option value="schoolTest">学校の実力テスト</option>
+        <option value="exam">入試候補日</option>
+      </select>
+
+      <label for="event-name-input">名称</label>
+      <input type="text" id="event-name-input" placeholder="例：第3回模試" required>
+
+      <label for="event-date-input">日付</label>
+      <input type="date" id="event-date-input" required>
+
+      <label for="event-memo-input">メモ（任意）</label>
+      <textarea id="event-memo-input" rows="2" placeholder="持ち物や会場など"></textarea>
+
+      <button type="submit" class="btn-primary" id="event-submit-btn">追加</button>
+      <button type="button" class="btn-secondary" id="event-cancel-btn" hidden>キャンセル</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>登録済みの予定</h2>
+    <div id="events-list"></div>
+  </section>
+
+</main>
+
+<main id="screen-grades" class="screen">
+
+  <section class="card">
+    <h2>成績を記録</h2>
+    <form id="grade-form">
+      <label for="grade-category-select">種類</label>
+      <select id="grade-category-select">
+        <option value="naishin">内申点</option>
+        <option value="mock">模試</option>
+        <option value="schoolTest">実力テスト</option>
+      </select>
+
+      <label for="grade-date-input">日付</label>
+      <input type="date" id="grade-date-input" required>
+
+      <label for="grade-title-input">タイトル</label>
+      <input type="text" id="grade-title-input" placeholder="例：第3回模試／2学期期末" required>
+
+      <div id="grade-mock-fields" hidden>
+        <label for="grade-hantei-input">判定（任意）</label>
+        <input type="text" id="grade-hantei-input" placeholder="例：B判定">
+
+        <label for="grade-hensachi-input">偏差値（任意）</label>
+        <input type="number" id="grade-hensachi-input" step="0.1" placeholder="例：58.5">
+      </div>
+
+      <label>科目・点数</label>
+      <div id="grade-subjects-container"></div>
+      <button type="button" class="btn-secondary" id="btn-add-subject-row">科目を追加</button>
+
+      <div class="grade-total">合計: <span id="grade-total-display">0</span></div>
+
+      <button type="submit" class="btn-primary" id="grade-submit-btn">追加</button>
+      <button type="button" class="btn-secondary" id="grade-cancel-btn" hidden>キャンセル</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>成績の記録一覧</h2>
+    <div id="grades-list"></div>
+  </section>
+
+</main>
+
+<nav class="bottom-nav">
+  <button type="button" class="nav-btn active" data-screen="home">ホーム</button>
+  <button type="button" class="nav-btn" data-screen="schedule">予定・模試</button>
+  <button type="button" class="nav-btn" data-screen="grades">成績</button>
+</nav>
+
+<div id="standby-overlay" class="standby-overlay" hidden>
+  <button type="button" id="btn-close-standby" class="standby-close" aria-label="待受モードを閉じる">×</button>
+  <div class="standby-content">
+    <div class="standby-block">
+      <div class="standby-label">受験まであと</div>
+      <div class="standby-number" id="standby-exam-days">--</div>
+      <div class="standby-unit">日</div>
+    </div>
+
+    <div class="standby-block standby-block-sub">
+      <div class="standby-label">次の試験まであと</div>
+      <div class="standby-number-sub" id="standby-next-test-days">--</div>
+      <div class="standby-unit">日</div>
+    </div>
+
+    <div class="standby-section">
+      <div class="standby-heading">今週の重点科目</div>
+      <div class="standby-focus" id="standby-focus">--</div>
+    </div>
+
+    <div class="standby-section">
+      <div class="standby-heading">今日の一歩</div>
+      <div class="standby-step" id="standby-step">--</div>
+    </div>
+  </div>
+</div>
+
+<script src="js/utils.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
