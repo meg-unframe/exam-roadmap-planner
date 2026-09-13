@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+js/config.js
 *.pem
 *.key
 *.p12
