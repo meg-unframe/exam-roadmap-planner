@@ -455,8 +455,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  /* ホーム：志望校・受験方式 */
-  document.getElementById('input-school-name').addEventListener('blur', saveSettingsFromForm);
+  /* ホーム：志望校・受験方式
+     blurだけに頼ると「入力後、他要素をクリックせずに端末を切り替える」ケースで
+     保存（Supabase同期含む）が発生しないため、入力中もデバウンス保存する */
+  let schoolNameSaveTimer = null;
+  document.getElementById('input-school-name').addEventListener('input', () => {
+    clearTimeout(schoolNameSaveTimer);
+    schoolNameSaveTimer = setTimeout(saveSettingsFromForm, 600);
+  });
+  document.getElementById('input-school-name').addEventListener('blur', () => {
+    clearTimeout(schoolNameSaveTimer);
+    saveSettingsFromForm();
+  });
   document.getElementById('select-exam-type').addEventListener('change', saveSettingsFromForm);
 
   /* ホーム：今週の重点科目 */

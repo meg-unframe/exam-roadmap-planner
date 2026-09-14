@@ -63,7 +63,20 @@ function syncStateToSupabase() {
     .catch((e) => console.error('Supabaseへの保存に失敗しました:', e));
 }
 
-/* 起動時に1回だけ呼ぶ。Supabaseにデータがあれば優先してlocalStorageへ反映する */
+function hasAnyLocalData() {
+  const state = getAllLocalState();
+  return (
+    !!(state.settings && (state.settings.schoolName || state.settings.examType !== DEFAULT_SETTINGS.examType)) ||
+    state.events.length > 0 ||
+    state.grades.length > 0 ||
+    state.weeklyFocus.length > 0 ||
+    state.weeklyTasks.length > 0
+  );
+}
+
+/* 起動時に1回だけ呼ぶ。Supabaseにデータがあれば優先してlocalStorageへ反映する。
+   Supabase側がまだ空で、この端末にローカルデータが残っている場合は、
+   そのローカルデータを初期データとしてSupabaseへアップロードする（取りこぼし防止） */
 const SUPABASE_HYDRATE_TIMEOUT_MS = 5000;
 
 async function hydrateFromSupabase() {
@@ -83,6 +96,10 @@ async function hydrateFromSupabase() {
     if (data && data.state) {
       applyStateToLocalStorage(data.state);
       return true;
+    }
+    if (hasAnyLocalData()) {
+      console.warn('Supabaseにまだデータが無いため、この端末のlocalStorageの内容をSupabaseへ同期します。');
+      syncStateToSupabase();
     }
     return false;
   } catch (e) {
