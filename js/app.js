@@ -277,7 +277,10 @@ function renderStandby() {
 
 /* ---------- 初期化・イベント登録 ---------- */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  /* Supabaseにデータがあれば優先して読み込む（無ければ既存のlocalStorageのまま） */
+  await Store.hydrateFromSupabase();
+
   /* ナビゲーション */
   document.querySelectorAll('.nav-btn').forEach((btn) => {
     btn.addEventListener('click', () => switchScreen(btn.dataset.screen));
