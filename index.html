@@ -147,6 +147,18 @@
         <input type="number" id="grade-hensachi-input" step="0.1" placeholder="例：58.5">
       </div>
 
+      <div id="grade-exam-fields" hidden>
+        <label for="grade-fscore3-input">3教科Fスコア（任意）</label>
+        <input type="number" id="grade-fscore3-input" step="0.1" placeholder="例：150">
+
+        <label for="grade-fscore5-input">5教科Fスコア（任意）</label>
+        <input type="number" id="grade-fscore5-input" step="0.1" placeholder="例：250">
+
+        <label>志望校判定（任意）</label>
+        <div id="grade-school-judgments-container"></div>
+        <button type="button" class="btn-secondary" id="btn-add-school-judgment">志望校を追加</button>
+      </div>
+
       <label>科目・点数</label>
       <div id="grade-subjects-container"></div>
       <button type="button" class="btn-secondary" id="btn-add-subject-row">科目を追加</button>

@@ -21,6 +21,10 @@ function currentWeekStart() {
 let editingEventId = null;
 let editingGradeId = null;
 let subjectRows = [{ name: '', score: '' }];
+let judgmentRows = [];
+
+const EXAM_CATEGORIES = ['mock', 'schoolTest'];
+const JUDGMENT_RANKS = ['A', 'B', 'C', 'D', 'E'];
 
 /* ---------- 画面切り替え ---------- */
 
@@ -193,9 +197,33 @@ function updateGradeTotal() {
   document.getElementById('grade-total-display').textContent = total;
 }
 
+function renderJudgmentRows() {
+  const container = document.getElementById('grade-school-judgments-container');
+  if (judgmentRows.length === 0) {
+    container.innerHTML = '<p class="empty-state">志望校判定が未入力です</p>';
+    return;
+  }
+  container.innerHTML = judgmentRows
+    .map(
+      (row, idx) => `
+    <div class="judgment-row">
+      <input type="text" class="judgment-school-input" data-idx="${idx}" placeholder="学校名" value="${escapeHTML(row.schoolName)}">
+      <input type="text" class="judgment-course-input" data-idx="${idx}" placeholder="学科・コース" value="${escapeHTML(row.course)}">
+      <select class="judgment-rank-select" data-idx="${idx}">
+        <option value="" ${row.judgment === '' ? 'selected' : ''}>-</option>
+        ${JUDGMENT_RANKS.map((r) => `<option value="${r}" ${row.judgment === r ? 'selected' : ''}>${r}</option>`).join('')}
+      </select>
+      <button type="button" class="btn-remove-judgment" data-idx="${idx}" aria-label="この志望校を削除">×</button>
+    </div>
+  `
+    )
+    .join('');
+}
+
 function updateGradeFormVisibility() {
-  const isMock = document.getElementById('grade-category-select').value === 'mock';
-  document.getElementById('grade-mock-fields').hidden = !isMock;
+  const category = document.getElementById('grade-category-select').value;
+  document.getElementById('grade-mock-fields').hidden = category !== 'mock';
+  document.getElementById('grade-exam-fields').hidden = !EXAM_CATEGORIES.includes(category);
 }
 
 function resetGradeForm() {
@@ -203,6 +231,8 @@ function resetGradeForm() {
   document.getElementById('grade-form').reset();
   subjectRows = [{ name: '', score: '' }];
   renderSubjectRows();
+  judgmentRows = [];
+  renderJudgmentRows();
   updateGradeFormVisibility();
   document.getElementById('grade-submit-btn').textContent = '追加';
   document.getElementById('grade-cancel-btn').hidden = true;
@@ -225,7 +255,23 @@ function renderGrades() {
         if (g.hantei) extraParts.push(`判定: ${escapeHTML(g.hantei)}`);
         if (g.hensachi !== null && g.hensachi !== undefined) extraParts.push(`偏差値: ${g.hensachi}`);
       }
+      if (EXAM_CATEGORIES.includes(g.category)) {
+        if (g.fScore3 !== null && g.fScore3 !== undefined) extraParts.push(`3教科Fスコア: ${g.fScore3}`);
+        if (g.fScore5 !== null && g.fScore5 !== undefined) extraParts.push(`5教科Fスコア: ${g.fScore5}`);
+      }
       const extra = extraParts.length ? ' ・ ' + extraParts.join(' ') : '';
+
+      const judgmentsText =
+        EXAM_CATEGORIES.includes(g.category) && g.schoolJudgments && g.schoolJudgments.length
+          ? g.schoolJudgments
+              .map((j) => {
+                const school = j.schoolName ? escapeHTML(j.schoolName) : '(校名未入力)';
+                const course = j.course ? `・${escapeHTML(j.course)}` : '';
+                return `${school}${course}: ${j.judgment || '-'}`;
+              })
+              .join(' / ')
+          : '';
+
       return `
       <div class="list-item">
         <div>
@@ -234,6 +280,7 @@ function renderGrades() {
           <div class="meta">${formatDateJP(g.date)}</div>
           <div class="detail">${subjectsText}</div>
           <div class="detail">合計: ${g.total}${extra}</div>
+          ${judgmentsText ? `<div class="detail">志望校判定: ${judgmentsText}</div>` : ''}
         </div>
         <div class="item-actions">
           <button type="button" class="btn-edit-grade" data-id="${g.id}">編集</button>
@@ -339,6 +386,33 @@ function buildTrendSVG(points, colorVar) {
     </svg>`;
 }
 
+function buildFScoreHistoryHTML(records) {
+  const rows = records
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map((r) => {
+      const parts = [];
+      if (r.fScore3 !== null && r.fScore3 !== undefined) parts.push(`3教科F: ${r.fScore3}`);
+      if (r.fScore5 !== null && r.fScore5 !== undefined) parts.push(`5教科F: ${r.fScore5}`);
+      if (r.schoolJudgments && r.schoolJudgments.length) {
+        const judgmentsText = r.schoolJudgments
+          .map((j) => {
+            const school = j.schoolName ? escapeHTML(j.schoolName) : '(校名未入力)';
+            const course = j.course ? `・${escapeHTML(j.course)}` : '';
+            return `${school}${course}: ${j.judgment || '-'}`;
+          })
+          .join(' / ');
+        parts.push(judgmentsText);
+      }
+      if (parts.length === 0) return '';
+      return `<div class="fscore-history-row"><span class="fscore-history-date">${formatDateJP(r.date)}</span>${parts.join(' ・ ')}</div>`;
+    })
+    .filter(Boolean)
+    .join('');
+
+  return rows ? `<div class="fscore-history">${rows}</div>` : '';
+}
+
 function renderGradesTrend() {
   const container = document.getElementById('history-grades-trend');
   const grades = Store.getGrades();
@@ -362,12 +436,14 @@ function renderGradesTrend() {
         <span class="trend-latest">${latest.total}点<span class="trend-latest-date"> (${formatDateJP(latest.date)})</span></span>
       </div>`;
 
+    const fScoreHistory = EXAM_CATEGORIES.includes(cat.key) ? buildFScoreHistoryHTML(records) : '';
+
     if (records.length === 1) {
-      return `<div class="trend-block">${header}<p class="trend-single-note">記録が1件のみのため推移はまだ表示できません</p></div>`;
+      return `<div class="trend-block">${header}<p class="trend-single-note">記録が1件のみのため推移はまだ表示できません</p>${fScoreHistory}</div>`;
     }
 
     const points = records.map((r) => ({ value: r.total, label: `${formatDateJP(r.date)} ${r.title}` }));
-    return `<div class="trend-block">${header}${buildTrendSVG(points, cat.colorVar)}</div>`;
+    return `<div class="trend-block">${header}${buildTrendSVG(points, cat.colorVar)}${fScoreHistory}</div>`;
   }).join('');
 
   container.innerHTML = blocks || '<p class="empty-state">成績の記録がまだありません</p>';
@@ -615,6 +691,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderSubjectRows();
   });
 
+  /* 成績：志望校判定の動的な行 */
+  document.getElementById('grade-school-judgments-container').addEventListener('input', (e) => {
+    const idx = Number(e.target.dataset.idx);
+    if (Number.isNaN(idx)) return;
+    if (e.target.classList.contains('judgment-school-input')) {
+      judgmentRows[idx].schoolName = e.target.value;
+    } else if (e.target.classList.contains('judgment-course-input')) {
+      judgmentRows[idx].course = e.target.value;
+    }
+  });
+
+  document.getElementById('grade-school-judgments-container').addEventListener('change', (e) => {
+    const idx = Number(e.target.dataset.idx);
+    if (Number.isNaN(idx)) return;
+    if (e.target.classList.contains('judgment-rank-select')) {
+      judgmentRows[idx].judgment = e.target.value;
+    }
+  });
+
+  document.getElementById('grade-school-judgments-container').addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-remove-judgment');
+    if (!btn) return;
+    const idx = Number(btn.dataset.idx);
+    judgmentRows.splice(idx, 1);
+    renderJudgmentRows();
+  });
+
+  document.getElementById('btn-add-school-judgment').addEventListener('click', () => {
+    judgmentRows.push({ schoolName: '', course: '', judgment: '' });
+    renderJudgmentRows();
+  });
+
   document.getElementById('grade-category-select').addEventListener('change', updateGradeFormVisibility);
 
   /* 成績：フォーム送信 */
@@ -626,6 +734,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hantei = document.getElementById('grade-hantei-input').value.trim();
     const hensachiRaw = document.getElementById('grade-hensachi-input').value;
     const hensachi = hensachiRaw === '' ? null : Number(hensachiRaw);
+    const fScore3Raw = document.getElementById('grade-fscore3-input').value;
+    const fScore5Raw = document.getElementById('grade-fscore5-input').value;
+    const isExamCategory = EXAM_CATEGORIES.includes(category);
 
     if (!date || !title) {
       alert('日付とタイトルを入力してください');
@@ -638,6 +749,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const total = subjects.reduce((sum, s) => sum + (Number.isFinite(s.score) ? s.score : 0), 0);
 
+    const schoolJudgments = isExamCategory
+      ? judgmentRows
+          .map((r) => ({ schoolName: r.schoolName.trim(), course: r.course.trim(), judgment: r.judgment }))
+          .filter((r) => r.schoolName !== '' || r.course !== '' || r.judgment !== '')
+      : [];
+
     const record = {
       category,
       date,
@@ -646,6 +763,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       total,
       hantei: category === 'mock' ? hantei : '',
       hensachi: category === 'mock' && Number.isFinite(hensachi) ? hensachi : null,
+      fScore3: isExamCategory && fScore3Raw !== '' ? Number(fScore3Raw) : null,
+      fScore5: isExamCategory && fScore5Raw !== '' ? Number(fScore5Raw) : null,
+      schoolJudgments,
     };
 
     const grades = Store.getGrades();
@@ -675,10 +795,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('grade-title-input').value = g.title;
       document.getElementById('grade-hantei-input').value = g.hantei || '';
       document.getElementById('grade-hensachi-input').value = g.hensachi ?? '';
+      document.getElementById('grade-fscore3-input').value = g.fScore3 ?? '';
+      document.getElementById('grade-fscore5-input').value = g.fScore5 ?? '';
       subjectRows = g.subjects.length
         ? g.subjects.map((s) => ({ name: s.name, score: s.score ?? '' }))
         : [{ name: '', score: '' }];
       renderSubjectRows();
+      judgmentRows = (g.schoolJudgments || []).map((j) => ({
+        schoolName: j.schoolName || '',
+        course: j.course || '',
+        judgment: j.judgment || '',
+      }));
+      renderJudgmentRows();
       updateGradeFormVisibility();
       document.getElementById('grade-submit-btn').textContent = '更新';
       document.getElementById('grade-cancel-btn').hidden = false;
@@ -706,6 +834,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderHome();
   renderEvents();
   renderSubjectRows();
+  renderJudgmentRows();
   updateGradeFormVisibility();
   renderGrades();
 });
