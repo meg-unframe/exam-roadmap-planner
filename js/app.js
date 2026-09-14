@@ -1,4 +1,4 @@
-const SCREENS = ['home', 'schedule', 'grades'];
+const SCREENS = ['home', 'schedule', 'grades', 'history'];
 
 const EVENT_TYPE_LABELS = {
   mock: '模試',
@@ -236,6 +236,164 @@ function renderGrades() {
     .join('');
 }
 
+/* ---------- 履歴画面 ---------- */
+
+function renderHistory() {
+  renderWeeklyHistory();
+  renderGradesTrend();
+  renderEventsHistory();
+}
+
+function renderWeeklyHistory() {
+  const container = document.getElementById('history-weekly-list');
+  const tasks = Store.getWeeklyTasks();
+  if (tasks.length === 0) {
+    container.innerHTML = '<p class="empty-state">今週やることの記録はまだありません</p>';
+    return;
+  }
+
+  const weekStarts = [...new Set(tasks.map((t) => t.weekStart))].sort((a, b) => b.localeCompare(a));
+
+  container.innerHTML = weekStarts
+    .map((weekStart) => {
+      const weekDates = getWeekDates(weekStart);
+      const weekTasks = tasks.filter((t) => t.weekStart === weekStart);
+      const rangeLabel = `${formatDateJP(weekDates[0])} 〜 ${formatDateJP(weekDates[6])}`;
+
+      const taskRows = weekTasks
+        .map((t) => {
+          const doneCount = weekDates.filter((d) => t.checks && t.checks[d]).length;
+          const dots = weekDates
+            .map((d, idx) => {
+              const checked = !!(t.checks && t.checks[d]);
+              const label = `${WEEKDAY_MON_FIRST[idx]}曜日${checked ? '：実施済み' : '：未実施'}`;
+              return `<span class="day-dot ${checked ? 'checked' : ''}" title="${label}" aria-label="${label}"></span>`;
+            })
+            .join('');
+          return `
+          <div class="week-task-row">
+            <span class="week-task-text">${escapeHTML(t.text)}</span>
+            <div class="week-task-dots">${dots}</div>
+            <span class="week-task-ratio">${doneCount}/7日</span>
+          </div>`;
+        })
+        .join('');
+
+      return `
+      <div class="week-group">
+        <div class="week-group-header"><span class="week-range">${rangeLabel}</span></div>
+        ${taskRows}
+      </div>`;
+    })
+    .join('');
+}
+
+const GRADE_TREND_CATEGORIES = [
+  { key: 'naishin', label: '内申点', colorVar: 'var(--trend-naishin)' },
+  { key: 'mock', label: '模試', colorVar: 'var(--trend-mock)' },
+  { key: 'schoolTest', label: '実力テスト', colorVar: 'var(--trend-schooltest)' },
+];
+
+function buildTrendSVG(points, colorVar) {
+  const width = 300;
+  const height = 70;
+  const padX = 10;
+  const padY = 14;
+  const values = points.map((p) => p.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const stepX = points.length > 1 ? (width - padX * 2) / (points.length - 1) : 0;
+
+  const coords = points.map((p, i) => ({
+    x: padX + stepX * i,
+    y: height - padY - ((p.value - min) / range) * (height - padY * 2),
+    value: p.value,
+    label: p.label,
+  }));
+
+  const pathD = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(' ');
+
+  const dots = coords
+    .map(
+      (c) => `
+      <circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="4" fill="${colorVar}" stroke="var(--color-card)" stroke-width="2" paint-order="stroke">
+        <title>${escapeHTML(c.label)}：${c.value}点</title>
+      </circle>`
+    )
+    .join('');
+
+  return `
+    <svg viewBox="0 0 ${width} ${height}" class="trend-svg" preserveAspectRatio="none" role="img" aria-label="推移グラフ">
+      <line x1="${padX}" y1="${height - padY}" x2="${width - padX}" y2="${height - padY}" class="trend-baseline" />
+      <path d="${pathD}" class="trend-line" stroke="${colorVar}" fill="none" />
+      ${dots}
+    </svg>`;
+}
+
+function renderGradesTrend() {
+  const container = document.getElementById('history-grades-trend');
+  const grades = Store.getGrades();
+  if (grades.length === 0) {
+    container.innerHTML = '<p class="empty-state">成績の記録がまだありません</p>';
+    return;
+  }
+
+  const blocks = GRADE_TREND_CATEGORIES.map((cat) => {
+    const records = grades
+      .filter((g) => g.category === cat.key)
+      .slice()
+      .sort((a, b) => a.date.localeCompare(b.date));
+    if (records.length === 0) return '';
+
+    const latest = records[records.length - 1];
+    const header = `
+      <div class="trend-header">
+        <span class="trend-dot" style="background:${cat.colorVar}"></span>
+        <span class="trend-title">${cat.label}</span>
+        <span class="trend-latest">${latest.total}点<span class="trend-latest-date"> (${formatDateJP(latest.date)})</span></span>
+      </div>`;
+
+    if (records.length === 1) {
+      return `<div class="trend-block">${header}<p class="trend-single-note">記録が1件のみのため推移はまだ表示できません</p></div>`;
+    }
+
+    const points = records.map((r) => ({ value: r.total, label: `${formatDateJP(r.date)} ${r.title}` }));
+    return `<div class="trend-block">${header}${buildTrendSVG(points, cat.colorVar)}</div>`;
+  }).join('');
+
+  container.innerHTML = blocks || '<p class="empty-state">成績の記録がまだありません</p>';
+}
+
+function renderEventsHistory() {
+  const container = document.getElementById('history-events-list');
+  const today = todayStr();
+  const pastEvents = Store.getEvents()
+    .filter((e) => e.date < today)
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  if (pastEvents.length === 0) {
+    container.innerHTML = '<p class="empty-state">過去の予定・模試の記録はまだありません</p>';
+    return;
+  }
+
+  container.innerHTML = pastEvents
+    .map((ev) => {
+      const daysAgo = Math.abs(daysUntil(ev.date));
+      return `
+      <div class="list-item">
+        <div>
+          <span class="badge badge-${ev.type}">${EVENT_TYPE_LABELS[ev.type]}</span>
+          <div class="title">${escapeHTML(ev.name)}</div>
+          <div class="meta">${formatDateJP(ev.date)}・${daysAgo}日前</div>
+          ${ev.memo ? `<div class="detail">${escapeHTML(ev.memo)}</div>` : ''}
+        </div>
+      </div>`;
+    })
+    .join('');
+}
+
 /* ---------- 待受モード ---------- */
 
 function nearestNextTest(events) {
@@ -283,7 +441,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   /* ナビゲーション */
   document.querySelectorAll('.nav-btn').forEach((btn) => {
-    btn.addEventListener('click', () => switchScreen(btn.dataset.screen));
+    btn.addEventListener('click', () => {
+      switchScreen(btn.dataset.screen);
+      if (btn.dataset.screen === 'history') renderHistory();
+    });
   });
 
   /* ホーム：志望校・受験方式 */

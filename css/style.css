@@ -9,6 +9,9 @@
   --color-border: #e2e2e2;
   --color-text: #222222;
   --color-text-muted: #777777;
+  --trend-naishin: #2a78d6;
+  --trend-mock: #eb6834;
+  --trend-schooltest: #1baf7a;
 }
 
 body {
@@ -518,6 +521,9 @@ textarea {
     --color-border: #333333;
     --color-text: #f0f0f0;
     --color-text-muted: #999999;
+    --trend-naishin: #3987e5;
+    --trend-mock: #d95926;
+    --trend-schooltest: #199e70;
   }
 
   input,
@@ -547,4 +553,130 @@ textarea {
   .day-check-today {
     background: #1e2a4a;
   }
+}
+
+/* ---------- 履歴画面：週次実行履歴 ---------- */
+
+.week-group {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.week-group:last-child {
+  border-bottom: none;
+}
+
+.week-group-header {
+  margin-bottom: 8px;
+}
+
+.week-range {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: var(--color-text-muted);
+}
+
+.week-task-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  flex-wrap: wrap;
+}
+
+.week-task-text {
+  font-size: 0.85rem;
+  color: var(--color-text);
+  flex: 1 1 100%;
+}
+
+.week-task-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.day-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-border);
+  background: transparent;
+}
+
+.day-dot.checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.week-task-ratio {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+/* ---------- 履歴画面：成績の推移 ---------- */
+
+.trend-block {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.trend-block:last-child {
+  border-bottom: none;
+}
+
+.trend-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.trend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.trend-title {
+  font-size: 0.88rem;
+  font-weight: bold;
+  color: var(--color-text);
+}
+
+.trend-latest {
+  font-size: 0.85rem;
+  color: var(--color-text);
+  margin-left: auto;
+}
+
+.trend-latest-date {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.trend-single-note {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.trend-svg {
+  width: 100%;
+  height: 70px;
+  display: block;
+}
+
+.trend-baseline {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.trend-line {
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
