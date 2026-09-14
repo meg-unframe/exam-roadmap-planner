@@ -1,0 +1,10 @@
+{
+  "name": "exam-roadmap-planner",
+  "private": true,
+  "version": "1.0.0",
+  "description": "受験逆算プランナー（静的HTML/CSS/JS、ビルド不要のフロントエンドのみ。generate-configだけがNodeを使う）",
+  "scripts": {
+    "build": "node scripts/generate-config.js",
+    "generate-config": "node --env-file=.env scripts/generate-config.js"
+  }
+}

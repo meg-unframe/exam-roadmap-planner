@@ -36,6 +36,14 @@ function switchScreen(name) {
 /* ---------- ホーム画面 ---------- */
 
 function renderHome() {
+  const hintEl = document.getElementById('storage-hint');
+  if (hintEl) {
+    hintEl.textContent =
+      typeof SupabaseClient !== 'undefined' && SupabaseClient
+        ? '入力内容はSupabaseに保存され、家族間で共有されます（オフライン時はこの端末に一時保存され、オンライン復帰時に自動で同期されます）'
+        : 'Supabase未設定のため、入力内容はこの端末のブラウザにのみ保存されます';
+  }
+
   const settings = Store.getSettings();
   document.getElementById('input-school-name').value = settings.schoolName || '';
   document.getElementById('select-exam-type').value = settings.examType || '未定';
